@@ -11,31 +11,58 @@ library("XBRL")
 library("finreportr")
 library("stringr")
 
+#Inital Parameters 
+Comp.tick <- "AAPL"
+
 #Setting up the downloading method
 options(download.file.method = "curl")
 
 
-#getting the available Annual reports for the JP Morgan  bank 
-JPM.annual<-AnnualReports("jpm", foreign = FALSE)
+#Getting the available Annual reports for the JP Morgan  bank 
+Annuals.list<-AnnualReports(Comp.tick, foreign = FALSE)
+Annuals.list
+
+#Selecting the Type of record we would like to analyze 
+Rec.no <- 1
 
 #Extracting the CIK number 
-cik <- as.character(as.numeric(str_split(JPM.annual$accession.no[5], "-")[[1]][1]))
+cik <- as.character(as.numeric(str_split(Annuals.list$accession.no[Rec.no], "-")[[1]][1]))
+
 
 #Listing all the LINK available for the Annual reports 
-cbind(paste0("https://www.sec.gov/Archives/edgar/data/",cik,"/", JPM.annual$accession.no, "-index.html"), JPM.annual$filing.date)
+cbind(paste0("https://www.sec.gov/Archives/edgar/data/",cik,"/", Annuals.list$accession.no, "-index.html"), Annuals.list$filing.date)
 
+#Selecting the URL we are interested in
+url <- "https://www.sec.gov/Archives/edgar/data/320193/000032019317000070/aapl-20170930.xml"
 
-url <- "https://www.sec.gov/Archives/edgar/data/19617/000001961714000289/jpm-20131231.xml"
+#Saving our current settings 
+original.options <-options()
 
-old_o <- options(stringsAsFactors = FALSE)
+#Setting up the new options 
+new.options <- options(stringsAsFactors = FALSE)
+
+#Analzying the XBRL files ### THIS MAY TAKE LONG TIME ####
 xbrl_data <- xbrlDoAll(url, delete.cached.inst = TRUE)
-options(old_o)
 
+#Restoring original 
+options(original.options)
+
+#Loading Some Data minupliating libraries 
 library(dplyr)
 library(tidyr)
 
-table(xbrl_data$calculation$contextElement)
+#Exploring the type info the document have 
+table(xbrl_data$role$type)
 
+#Filtering only the statements in the XBRL document
+filtered.data <- xbrl_data$role %>% filter(xbrl_data$role$type == "Statement")
+
+
+install.packages("igraph")
+
+library("igraph")
+
+as_data_frame(xbrl_data$presentation[,2:3])
 str(xbrl_data$calculation, max.level = 1, vec.len = 0)
 
 xbrl_data$presentation[sample(1:200,5),2:3]
