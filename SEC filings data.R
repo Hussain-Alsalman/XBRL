@@ -57,10 +57,27 @@ table(xbrl_data$role$type)
 #Filtering only the statements in the XBRL document
 filtered.data <- xbrl_data$role %>% filter(xbrl_data$role$type == "Statement")
 
+#Display the type of statments we have 
+#Install.packages("htmlTable")  #----uncomment if package is not installed
+library("htmlTable")
 
-install.packages("igraph")
+htmlTable::htmlTable(data.frame(Statements = 
+  with(
+    filtered.data, 
+    paste("<h3>",definition,"</h3>", "</br><p>", roleId, "\n<p/>")
+    )),
+  align = "l",
+  rname = FALSE,
+  css.cell = "pedding-bottom: .2em; pedding-top: .2em;"
+  )
 
-library("igraph")
+#displaying the income statement for Apple 
+
+
+#Exploring 
+#install.packages("igraph")
+
+
 
 as_data_frame(xbrl_data$presentation[,2:3])
 str(xbrl_data$calculation, max.level = 1, vec.len = 0)
