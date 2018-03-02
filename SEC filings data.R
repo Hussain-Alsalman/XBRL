@@ -54,10 +54,19 @@ library(tidyr)
 #================== Experimenting 
 
 xbrl_data$element %>% 
-  filter(elementId=="us-gaap_CostOfGoodsSold" ) %>%
-  left_join(xbrl_data$fact, by =  "elementId")
+  filter(elementId=="us-gaap_CostOfGoodsAndServicesSold" ) %>%
+  left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
+  left_join(xbrl_data$label, by = "elementId") %>% 
+  filter(startDate == "2014-09-28") %>% select(labelString, fact, type)
+  
 
 xbrl_data$fact %>% filter(elementId == "us-gaap_CostOfGoodsSold")
+
+
+
+
+
+
 #===============================
 
 #Exploring the type info the document have 
@@ -82,7 +91,7 @@ htmlTable::htmlTable(data.frame(Statements =
 
 #displaying the income statement for Apple 
 
-role_Id <- "http://www.apple.com/role/ConsolidatedStatementsOfComprehensiveIncome" 
+role_Id <- "http://www.apple.com/role/ConsolidatedStatementsOfOperations" 
 
 
 pres <- 
@@ -102,7 +111,7 @@ role_id <- "http://www.jpmorganchase.com/role/CreditRiskConcentrationsDetails"
 
 pres <-
   xbrl_data$presentation %>%
-  filter(roleId == role_id) %>% 
+  filter(roleId %in% role_id) %>% 
   mutate(order = as.numeric(order))
 
 pres_df <- 
