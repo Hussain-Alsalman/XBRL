@@ -51,6 +51,15 @@ options(original.options)
 library(dplyr)
 library(tidyr)
 
+#================== Experimenting 
+
+xbrl_data$element %>% 
+  filter(elementId=="us-gaap_CostOfGoodsSold" ) %>%
+  left_join(xbrl_data$fact, by =  "elementId")
+
+xbrl_data$fact %>% filter(elementId == "us-gaap_CostOfGoodsSold")
+#===============================
+
 #Exploring the type info the document have 
 table(xbrl_data$role$type)
 
@@ -73,13 +82,14 @@ htmlTable::htmlTable(data.frame(Statements =
 
 #displaying the income statement for Apple 
 
-
-#Exploring 
-#install.packages("igraph")
+role_Id <- "http://www.apple.com/role/ConsolidatedStatementsOfComprehensiveIncome" 
 
 
+pres <- 
+  xbrl_data$presentation %>% filter(roleId %in% role_Id )
 
-as_data_frame(xbrl_data$presentation[,2:3])
+
+
 str(xbrl_data$calculation, max.level = 1, vec.len = 0)
 
 xbrl_data$presentation[sample(1:200,5),2:3]
