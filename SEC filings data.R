@@ -56,9 +56,8 @@ library(tidyr)
 xbrl_data$element %>% 
   filter(elementId=="us-gaap_CostOfGoodsAndServicesSold" ) %>%
   left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
-  left_join(xbrl_data$label, by = "elementId") %>% 
-  filter(startDate == "2014-09-28") %>% select(labelString, fact, type)
-  
+  left_join(xbrl_data$label, by = "elementId") %>%  left_join(xbrl_data$unit, by ="unitId") %>%
+  filter(endDate == "2017-09-30" & contextId == "FD2017Q4YTD") %>% View()
 
 xbrl_data$fact %>% filter(elementId == "us-gaap_CostOfGoodsSold")
 
@@ -79,7 +78,7 @@ filtered.data <- xbrl_data$role %>% filter(xbrl_data$role$type == "Statement")
 #Install.packages("htmlTable")  #----uncomment if package is not installed
 library("htmlTable")
 
-htmlTable::htmlTable(data.frame(Statements = 
+html.table <-htmlTable::htmlTable(data.frame(Statements = 
   with(
     filtered.data, 
     paste("<h3>",definition,"</h3>", "</br><p>", roleId, "\n<p/>")
@@ -89,11 +88,50 @@ htmlTable::htmlTable(data.frame(Statements =
   css.cell = "pedding-bottom: .2em; pedding-top: .2em;"
   )
 
+
 #displaying the income statement for Apple 
 
 role_Id <- "http://www.apple.com/role/ConsolidatedStatementsOfOperations" 
 
+# prepare presentation linkbase : 
+# filter by role_Id an convert order to numeric
+pres <- 
+  xbrl_data$presentation %>%
+  filter(roleId %in% role_Id) %>%
+  mutate(order = as.numeric(order))
 
+# start with top element of the presentation tree
+pres_df <- 
+  pres %>%
+  anti_join(pres, by = c("fromElementId" = "toElementId")) %>%
+  select(elementId = fromElementId)
+
+# breadth-first search
+while({
+  df1 <- pres_df %>%
+    na.omit() %>%
+    left_join( pres, by = c("elementId" = "fromElementId")) %>%
+    arrange(elementId, order) %>%
+    select(elementId, child = toElementId);
+  nrow(df1) > 0
+}) 
+{
+  # add each new level to data frame
+  pres_df <- pres_df %>% left_join(df1, by = "elementId")
+  names(pres_df) <-  c(sprintf("level%d", 1:(ncol(pres_df)-1)), "elementId")
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  # add last level as special column (the hierarchy may not be uniformly deep)
+pres_df["elementId"] <- 
+  apply( t(pres_df), 2, function(x){tail( x[!is.na(x)], 1)})
+pres_df["elOrder"] <- 1:nrow(pres_df) 
+
+# the final data frame structure is
+str(pres_df, vec.len = 1 )
+
+
+
+
+#========================================================
 pres <- 
   xbrl_data$presentation %>% filter(roleId %in% role_Id )
 
