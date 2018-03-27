@@ -47,8 +47,6 @@ xbrl_data <- xbrlDoAll(url, delete.cached.inst = TRUE)
 library(dplyr)
 library(tidyr)
 
-#================== Experimenting 
-
 #Display the type of statments we have 
 #install.packages("htmlTable")  #----uncomment if package is not installed
 library("htmlTable")
@@ -61,7 +59,7 @@ html.table <- htmlTable::htmlTable(data.frame(Statements =  with(filtered.data, 
                                   rname = FALSE,
                                   css.cell = "pedding-bottom: .2em; pedding-top: .2em;")
 
-role_Id <- "http://www.apple.com/role/ConsolidatedBalanceSheets"
+role_Id <- "http://www.apple.com/role/ConsolidatedStatementsOfOperations"
 # Visualizing The calculation stracture of the financial statements
 library(igraph)
 doc.graph <-xbrl_data$calculation [which(xbrl_data$calculation$roleId == role_Id ),c("fromElementId", "toElementId")]
@@ -74,14 +72,21 @@ xbrl_data$calculation [which(xbrl_data$calculation$roleId == role_Id ),]
 options(original.options)
 
 
-#================== Experimenting ==========================
-xbrl_data$element %>%
+#==================  ==========================
+CostOfGoodsSold<-xbrl_data$element %>%
   filter(elementId=="us-gaap_CostOfGoodsAndServicesSold" ) %>%
   left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
-  left_join(xbrl_data$label, by = "elementId") %>%  left_join(xbrl_data$unit, by ="unitId")
+  left_join(xbrl_data$label, by = "elementId") %>%  left_join(xbrl_data$unit, by ="unitId") %>% 
+  filter(is.na(dimension1) & labelRole =="http://www.xbrl.org/2003/role/label")  %>%
+  select(labelString, contextId, fact)
 
-xbrl_data$fact %>% filter(elementId == "us-gaap_CostOfGoodsSold")
 
-xbrl_data$element %>% filter(grepl("Sales", elementId) & type =="xbrli:monetaryItemType" & periodType == "duration") %>%
-  select(elementId)
-#===========================================================
+SalesRevenueNet<-xbrl_data$element %>%
+  filter(elementId=="us-gaap_SalesRevenueNet" ) %>%
+  left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
+  left_join(xbrl_data$label, by = "elementId") %>%  left_join(xbrl_data$unit, by ="unitId") %>% 
+  filter(is.na(dimension1) & grepl("4YTD", contextId) & labelRole =="http://www.xbrl.org/2003/role/label") %>%
+  select(labelString, contextId, fact)
+
+plot(c("2015","2016","2017"),scale(as.numeric(SalesRevenueNet$fact)), type = "l")
+lines(c("2015","2016","2017"),scale(as.numeric(CostOfGoodsSold$fact)), col= "red")
