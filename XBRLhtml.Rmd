@@ -96,6 +96,9 @@ url <- "https://www.sec.gov/Archives/edgar/data/320193/000032019317000070/aapl-2
 الحين يجي دور حزمة XBRL العظيمة. هذه الحزمة راح تعالج لنا بيانات 
 هذه الحزمة تقوم بجمع كل البيانات من ملفات XBRL ووضعها في هيكلة بيانات مجدولة
 
+```{r, echo=FALSE}
+ load(file="data.RData")
+```
 ```{r, eval=FALSE}
 #=================== Starting the XBRL files Analysis =========================
 
@@ -103,8 +106,70 @@ url <- "https://www.sec.gov/Archives/edgar/data/320193/000032019317000070/aapl-2
 xbrl_data <- xbrlDoAll(url, delete.cached.inst = TRUE)
 ```
 
-لنفترض أننا نريد معرفة مبيعات شركة ابل خلال الثلاث سنوات الماضية
+ما حلصنا عليه في المتغير xbrl_data هو مجموعة من الجداول تمثل ما سبق وتحدثنا عنه حول اقسام واجزاء صيغة XBRL 
+لعل هذه الصورة توضح ما لدينا 
 
 
 
-كذلك نريد معرفة 
+بفضل هذه الحزمة العجيبة اصبح بإمكاننا التنقل بين عناصر هذه الصيغة بكل سهولة. بل بإستعانة بحزمة dplyr اصبح لدينا القدرة على صنع استعلامات شبيه بأوامر SQL للحصول عل ما نريد 
+
+لنفترض أننا نريد الحصول على مبيعات ابل خلال الثلاث سنوات الماضية. يمكننا فعل ذلك بكل سهولة عبر الكود التالي 
+```{r, message=FALSE}
+#Loading Some Data minupliating libraries 
+library(dplyr)
+library(tidyr)
+
+SalesRevenueNet<-xbrl_data$element %>%
+  filter(elementId=="us-gaap_SalesRevenueNet" ) %>%
+  left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
+  left_join(xbrl_data$label, by = "elementId") %>%  left_join(xbrl_data$unit, by ="unitId") %>% 
+  filter(is.na(dimension1) & grepl("4YTD", contextId) & labelRole =="http://www.xbrl.org/2003/role/label") %>%
+  select(labelString, contextId, fact)
+
+SalesRevenueNet
+```
+
+كذلك يمكننا ايضا الحصول على تكاليف تلك المبيعات بكود مشابه 
+
+```{r}
+CostOfGoodsSold<-xbrl_data$element %>%
+  filter(elementId=="us-gaap_CostOfGoodsAndServicesSold" ) %>%
+  left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
+  left_join(xbrl_data$label, by = "elementId") %>%  left_join(xbrl_data$unit, by ="unitId") %>% 
+  filter(is.na(dimension1) & labelRole =="http://www.xbrl.org/2003/role/label")  %>%
+  select(labelString, contextId, fact)
+
+CostOfGoodsSold
+```
+
+### طريقة مبتكرة لكشف قواعد الوصل بين العناصر
+
+سبق وذكرنا ان صيغة XBRL تحوي بجعبتها علاقة كل عنصر بالآخر بما يتوافق مع دورهم في القوائم المالية
+
+لتبسيط هذه الفكرة , لنأخذ قائمة الارباح على سبيل المثال. في هذه القائمة نتوقع أن تكون الأرباح هي العامل المشترك بين كل العناصر المساهمة لصنع تلك القائمة. بمعنى أخر, للحصول على صافي الارباح نحتاج إلى ان نقوم بعملية طرح بين المبيعات والتكاليف على سبيل المثال. 
+
+بدل من صنع القائمة ذاتها قررت أن اصور تلك العلاقات على هيئة علاقة شبكية. خلينا ننتقل إلى الكود, النتائج بصراحة جميلة 
+
+```{r, message=FALSE}
+#Financial Statement Role 
+role_Id <- "http://www.apple.com/role/ConsolidatedStatementsOfOperations"
+# Visualizing The calculation stracture of the financial statements
+library(igraph)
+doc.graph <-xbrl_data$calculation [which(xbrl_data$calculation$roleId == role_Id ),c("fromElementId", "toElementId")]
+doc.viz <- graph.data.frame(doc.graph)
+plot.igraph(doc.viz, vertex.label.color ="black", vertex.label.cex = .5 ,vertex.color = "Navyblue", layout = layout.reingold.tilford)
+
+```
+
+وفقط للحماس هذه قائمة الأصول 
+
+```{r, message=FALSE, echo=FALSE}
+#Financial Statement Role 
+role_Id <- "http://www.apple.com/role/ConsolidatedBalanceSheets"
+# Visualizing The calculation stracture of the financial statements
+library(igraph)
+doc.graph <-xbrl_data$calculation [which(xbrl_data$calculation$roleId == role_Id ),c("fromElementId", "toElementId")]
+doc.viz <- graph.data.frame(doc.graph)
+plot.igraph(doc.viz, vertex.label.color ="black", vertex.color = "Navyblue",vertex.label.cex = .3, layout = layout_with_graphopt)
+
+```

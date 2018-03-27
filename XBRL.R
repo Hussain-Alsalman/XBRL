@@ -66,13 +66,13 @@ doc.graph <-xbrl_data$calculation [which(xbrl_data$calculation$roleId == role_Id
 doc.viz <- graph.data.frame(doc.graph)
 tkplot(doc.viz, vertex.label.color ="darkGreen")
 
-xbrl_data$calculation [which(xbrl_data$calculation$roleId == role_Id ),]
+xbrl_data$calculation[which(xbrl_data$calculation$roleId == role_Id ),]
 #==== Restoring the original setting of certain parameters
 #Restoring original
 options(original.options)
 
 
-#==================  ==========================
+#===========================================
 CostOfGoodsSold<-xbrl_data$element %>%
   filter(elementId=="us-gaap_CostOfGoodsAndServicesSold" ) %>%
   left_join(xbrl_data$fact, by =  "elementId") %>% left_join(xbrl_data$context, by ="contextId") %>%
